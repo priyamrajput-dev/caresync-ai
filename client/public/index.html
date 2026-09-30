@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareSync AI | Enterprise Command Center</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            /* Enterprise Color Palette */
+            --bg-body: #0f172a; /* Slate 900 */
+            --bg-panel: #1e293b; /* Slate 800 */
+            --bg-panel-light: #334155; /* Slate 700 */
+            
+            --primary: #3b82f6; /* Blue 500 */
+            --primary-glow: rgba(59, 130, 246, 0.5);
+            --accent: #8b5cf6; /* Violet 500 */
+            --success: #10b981; /* Emerald 500 */
+            --warning: #f59e0b; /* Amber 500 */
+            --danger: #ef4444; /* Red 500 */
+            
+            --text-main: #f8fafc; /* Slate 50 */
+            --text-muted: #94a3b8; /* Slate 400 */
+            
+            --border: #334155;
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        /* --- Reset & Base --- */
+        * { box-sizing: border-box; outline: none; }
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg-body); color: var(--text-main); font-family: var(--font-main); }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-panel-light); border-radius: 10px; }
+
+        /* --- Utility Classes --- */
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .font-bold { font-weight: 700; }
+        .text-primary { color: var(--primary); }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        .text-muted { color: var(--text-muted); }
+
+        /* --- Animations --- */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes scan { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
+        /* --- Components --- */
+        
+        /* Buttons */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 12px var(--primary-glow); }
+        .btn-ghost { background: transparent; color: var(--text-muted); }
+        .btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+
+        /* Layout */
+        #app { display: flex; height: 100vh; width: 100vw; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            z-index: 20;
+        }
+        .brand { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 2rem; display: flex; align-items: center; gap: 10px; }
+        .nav-item {
+            padding: 12px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(59, 130, 246, 0.1); color: var(--primary); }
+        
+        /* Main Content */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        
+        /* Header */
+        .topbar {
+            height: 70px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            background: rgba(15, 23, 42, 0.9);
+        }
+        .user-profile { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border); object-fit: cover; }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: auto auto 1fr;
+            gap: 1.5rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* Cards/Panels */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Specific Grid Areas */
+        .stat-card { grid-column: span 1; min-height: 140px; }
+        .map-card { grid-column: span 3; grid-row: span 2; min-height: 500px; position: relative; }
+        .chart-card { grid-column: span 1; grid-row: span 2; min-height: 500px; }
+        .log-card { grid-column: span 4; height: 250px; }
+
+        /* Canvas Containers */
+        .canvas-container { flex: 1; width: 100%; height: 100%; position: relative; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.2); }
+
+        /* Logs */
+        .log-container { font-family: var(--font-mono); font-size: 0.85rem; overflow-y: auto; color: var(--text-muted); }
+        .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; }
+        .log-time { color: var(--text-muted); opacity: 0.6; min-width: 60px; }
+        .log-source { color: var(--accent); font-weight: bold; min-width: 120px; }
+
+        /* Landing Page */
+        #landing-page {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100;
+            transition: opacity 0.8s ease;
+        }
+        .hero-title { font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        /* AI Chat (Floating) */
+        .ai-fab {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 60px; height: 60px;
+            background: var(--primary); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.5rem; cursor: pointer;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
+            z-index: 50; transition: transform 0.2s;
+        }
+        .ai-fab:hover { transform: scale(1.1); }
+        
+        .ai-panel {
+            position: fixed; bottom: 100px; right: 30px;
+            width: 380px; height: 550px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex; flex-direction: column;
+            transform-origin: bottom right;
+            transform: scale(0.9) translateY(20px);
+            opacity: 0; pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 50;
+        }
+        .ai-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+        
+        .chat-header { padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); }
+        .chat-body { flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+        .chat-input-area { padding: 1rem; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+        .chat-input {
+            flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+            color: white; padding: 10px 15px; border-radius: 8px;
+        }
+        .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.9rem; line-height: 1.4; animation: fadeIn 0.3s ease; }
+        .msg.ai { background: var(--bg-panel-light); align-self: flex-start; border-bottom-left-radius: 2px; }
+        .msg.user { background: var(--primary); align-self: flex-end; border-bottom-right-radius: 2px; }
+
+        /* Loader */
+        .loader-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-body);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.5s;
+        }
+        .loader-overlay.active { opacity: 1; pointer-events: all; }
+        .spinner { width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 150; display: flex; flex-direction: column; gap: 10px; }
+        .toast {
+            background: var(--bg-panel); border-left: 4px solid var(--primary);
+            padding: 16px 20px; border-radius: 4px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex; align-items: center; gap: 12px; min-width: 300px;
+            transform: translateX(100%); transition: transform 0.3s ease;
+        }
+        .toast.show { transform: translateX(0); }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+            .map-card { grid-column: span 2; }
+            .chart-card { grid-column: span 2; grid-row: span 1; }
+            .log-card { grid-column: span 2; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: -260px; height: 100%; transition: left 0.3s; }
+            .sidebar.active { left: 0; }
+            .dashboard-grid { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loader" class="loader-overlay">
+        <div class="spinner"></div>
+        <h3 style="margin-top: 20px; font-weight: 500;">Establishing Secure Connection...</h3>
+        <p class="text-muted text-sm" style="margin-top: 5px;">Verifying Bright Data Infrastructure</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <!-- App Container -->
+    <div id="app">
+        
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-heart-pulse text-primary"></i>
+                <span>CareSync<span class="text-primary">AI</span></span>
+            </div>
+            <nav style="flex: 1;">
+                <div class="nav-item active"><i class="fa-solid fa-grid-2"></i> Dashboard</div>
+                <div class="nav-item"><i class="fa-solid fa-map-location-dot"></i> Global Intel</div>
+                <div class="nav-item"><i class="fa-solid fa-boxes-packing"></i> Supply Chain</div>
+                <div class="nav-item"><i class="fa-solid fa-robot"></i> AI Agents</div>
+                <div class="nav-item"><i class="fa-solid fa-chart-line"></i> Analytics</div>
+                <div class="nav-item"><i class="fa-solid fa-gear"></i> Settings</div>
+            </nav>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: auto;">
+                v2.4.0-enterprise<br>
+                <span class="text-success">● System Online</span>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="topbar">
+                <div class="flex items-center gap-4">
+                    <button class="btn-ghost" id="menu-toggle" style="display: none;"><i class="fa-solid fa-bars"></i></button>
+                    <div>
+                        <h2 class="font-bold">National Operations Center</h2>
+                        <p class="text-xs text-muted">Live Feed • Delhi NCR Sector</p>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <button class="btn-ghost"><i class="fa-regular fa-bell"></i></button>
+                    <div style="text-align: right;">
+                        <div class="text-sm font-bold">Dr. Sarah Chen</div>
+                        <div class="text-xs text-muted">Chief Medical Officer</div>
+                    </div>
+                    <img src="https://picsum.photos/seed/doctor/40/40" alt="Profile" class="avatar">
+                </div>
+            </header>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Metric 1 -->
+                <div class="panel stat-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-xs text-muted font-bold uppercase">Oxygen Capacity</p>
+                            <h1 class="font-bold" style="font-size: 2rem;" id="metric-oxygen">84%</h1>
+                        </div>
+                        <i class="fa-solid fa-lungs text-primary fa-lg"></i>
+                    </div>
+                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: auto;">
+                        <div id="bar-oxygen" style="height: 100%; width: 84%; background: var(--primary); border-radius: 2px; transition: width 1s;"></div>
+                    </div>
+                    <p class="text-xs text-muted mt-2"><i class="fa-solid fa-arrow-trend-down text-danger"></i> Down 1.2% from last hour</p>
+                </div>
+
+                <!-- Metric 2 -->
+                <div class="panel stat-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-xs text-muted font-bold uppercase">ICU Occupancy</p>
+                            <h1 class="font-bold" style="font-size: 2rem; color: var(--danger);" id="metric-icu">92%</h1>
+                        </div>
+                        <i class="fa-solid fa-bed-pulse text-danger fa-lg"></i>
+                    </div>
+                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: auto;">
+                        <div id="bar-icu" style="height: 100%; width: 92%; background: var(--danger); border-radius: 2px; transition: width 1s;"></div>
+                    </div>
+                    <p class="text-xs text-muted mt-2"><span class="text-danger">Critical Load</span> in Sector 4</p>
+                </div>
+
+                <!-- Metric 3 -->
+                <div class="panel stat-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-xs text-muted font-bold uppercase">Pharma Stock</p>
+                            <h1 class="font-bold" style="font-size: 2rem; color: var(--warning);" id="metric-pharma">78%</h1>
+                        </div>
+                        <i class="fa-solid fa-capsules text-warning fa-lg"></i>
+                    </div>
+                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: auto;">
+                        <div id="bar-pharma" style="height: 100%; width: 78%; background: var(--warning); border-radius: 2px; transition: width 1s;"></div>
+                    </div>
+                    <p class="text-xs text-muted mt-2">Replenishment ordered</p>
+                </div>
+
+                 <!-- Metric 4 -->
+                 <div class="panel stat-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-xs text-muted font-bold uppercase">AI Risk Score</p>
+                            <h1 class="font-bold" style="font-size: 2rem; color: var(--accent);" id="metric-risk">Mod</h1>
+                        </div>
+                        <i class="fa-solid fa-shield-virus text-accent fa-lg"></i>
+                    </div>
+                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: auto;">
+                        <div style="height: 100%; width: 45%; background: var(--accent); border-radius: 2px;"></div>
+                    </div>
+                    <p class="text-xs text-muted mt-2">Analysis updated 2m ago</p>
+                </div>
+
+                <!-- Map -->
+                <div class="panel map-card">
+                    <div class="flex justify-between items-center mb-4" style="z-index: 10; position: relative;">
+                        <div>
+                            <h3 class="font-bold">Intelligence Map</h3>
+                            <p class="text-xs text-muted">Real-time regional node status</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="text-xs" style="display:flex; align-items:center; gap:4px;"><div style="width:8px; height:8px; border-radius:50%; background:var(--success);"></div> Stable</span>
+                            <span class="text-xs" style="display:flex; align-items:center; gap:4px;"><div style="width:8px; height:8px; border-radius:50%; background:var(--danger);"></div> Critical</span>
+                        </div>
+                    </div>
+                    <div class="canvas-container" id="map-container">
+                        <canvas id="mapCanvas"></canvas>
+                        <!-- Overlay Tooltip -->
+                        <div id="map-tooltip" style="position: absolute; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 20;">
+                            <strong id="tt-title">Region</strong>
+                            <div id="tt-status" class="text-xs text-muted">Status</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="panel chart-card">
+                    <div class="mb-4">
+                        <h3 class="font-bold">Predictive Analytics</h3>
+                        <p class="text-xs text-muted">Oxygen Demand Forecast (48h)</p>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="chartCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Logs -->
+                <div class="panel log-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-bold text-sm">System Logs</h3>
+                        <span class="text-xs text-muted">Live Stream</span>
+                    </div>
+                    <div class="log-container" id="log-feed">
+                        <!-- Logs injected here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Landing Page -->
+    <div id="landing-page">
+        <div style="text-align: center; max-width: 600px; padding: 20px;">
+            <div style="width: 80px; height: 80px; background: rgba(59, 130, 246, 0.1); border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 2rem;">
+                <i class="fa-solid fa-heart-pulse fa-2x text-primary"></i>
+            </div>
+            <h1 class="hero-title">CareSync <span class="text-primary">AI</span></h1>
+            <p class="text-muted" style="font-size: 1.2rem; margin-bottom: 3rem; line-height: 1.6;">
+                Autonomous Healthcare Intelligence Infrastructure.<br>
+                Powered by Bright Data & Advanced Procurement Agents.
+            </p>
+            <button class="btn" onclick="App.enterDashboard()" style="font-size: 1.1rem; padding: 15px 40px;">
+                <i class="fa-solid fa-lock"></i> Secure Access
+            </button>
+            <div style="margin-top: 2rem; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-muted); font-size: 0.8rem;">
+                <i class="fa-solid fa-shield-halved"></i> End-to-End Encrypted
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Copilot -->
+    <div class="ai-fab" onclick="App.toggleChat()">
+        <i class="fa-solid fa-robot"></i>
+    </div>
+    <div class="ai-panel" id="ai-panel">
+        <div class="chat-header">
+            <span class="font-bold flex items-center gap-2"><i class="fa-solid fa-sparkles text-accent"></i> AI Procurement Agent</span>
+            <button class="btn-ghost" onclick="App.toggleChat()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="chat-body" id="chat-feed">
+            <div class="msg ai">Hello Dr. Chen. I've analyzed the current inventory data. Oxygen levels in Delhi NCR are approaching critical thresholds. Shall I initiate automated procurement?</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" class="chat-input" id="chat-input" placeholder="Ask AI..." onkeypress="App.handleChatKey(event)">
+            <button class="btn" onclick="App.sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        /**
+         * Enterprise Application Logic
+         * Uses a class-based structure for modularity and state management.
+         */
+        class Store {
+            constructor() {
+                this.state = {
+                    oxygen: 84.5,
+                    icu: 92.1,
+                    pharma: 78.2,
+                    logs: [],
+                    nodes: [
+                        { id: 1, x: 0.2, y: 0.3, name: 'Punjab', status: 'stable', val: 98 },
+                        { id: 2, x: 0.8, y: 0.25, name: 'Delhi NCR', status: 'critical', val: 24 },
+                        { id: 3, x: 0.5, y: 0.5, name: 'Central Hub', status: 'stable', val: 88 },
+                        { id: 4, x: 0.25, y: 0.75, name: 'Mumbai', status: 'warning', val: 65 },
+                        { id: 5, x: 0.75, y: 0.8, name: 'Chennai', status: 'stable', val: 91 }
+                    ],
+                    chartData: Array.from({length: 20}, () => Math.random() * 40 + 40)
+                };
+                this.listeners = [];
+                this.startSimulation();
+            }
+
+            subscribe(listener) {
+                this.listeners.push(listener);
+            }
+
+            notify() {
+                this.listeners.forEach(l => l(this.state));
+            }
+
+            addLog(source, message) {
+                const time = new Date().toLocaleTimeString([], { hour12: false });
+                this.state.logs.unshift({ time, source, message });
+                if (this.state.logs.length > 50) this.state.logs.pop();
+                this.notify();
+            }
+
+            startSimulation() {
+                // Simulate Data Fluctuations
+                setInterval(() => {
+                    // Random walk for oxygen
+                    const change = (Math.random() - 0.6) * 2;
+                    this.state.oxygen = Math.max(0, Math.min(100, this.state.oxygen + change));
+                    
+                    // Update Chart Data
+                    this.state.chartData.shift();
+                    this.state.chartData.push(this.state.oxygen + (Math.random() * 10 - 5));
+                    
+                    // Random Logs
+                    if (Math.random() > 0.85) {
+                        const sources = ['Supply Agent', 'Risk Agent', 'Web Scraper', 'DB Sync'];
+                        const msgs = [
+                            'Inventory verified via Bright Data proxy.',
+                            'New supplier quote received (Reliability 98%).',
+                            'Critical alert: Delay in Sector 4 logistics.',
+                            'Patient load analysis updated.'
+                        ];
+                        this.addLog(
+                            sources[Math.floor(Math.random() * sources.length)],
+                            msgs[Math.floor(Math.random() * msgs.length)]
+                        );
+                    }
+
+                    this.notify();
+                }, 2000);
+            }
+        }
+
+        const store = new Store();
+
+        /**
+         * Canvas Map Renderer
+         * Handles the 2D Radar Map visualization
+         */
+        class MapRenderer {
+            constructor(canvasId, store) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.store = store;
+                this.width = 0;
+                this.height = 0;
+                this.angle = 0;
+                this.nodes = store.state.nodes;
+                this.hoveredNode = null;
+                
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                
+                // Interaction
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('click', () => this.handleClick());
+
+                this.animate();
+            }
+
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+                this.width = rect.width;
+                this.height = rect.height;
+            }
+
+            handleMouseMove(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                this.hoveredNode = null;
+                const tooltip = document.getElementById('map-tooltip');
+
+                for (const node of this.nodes) {
+                    const nx = node.x * this.width;
+                    const ny = node.y * this.height;
+                    const dist = Math.sqrt((mouseX - nx) ** 2 + (mouseY - ny) ** 2);
+                    
+                    if (dist < 15) {
+                        this.hoveredNode = node;
+                        this.canvas.style.cursor = 'pointer';
+                        
+                        // Show Tooltip
+                        tooltip.style.opacity = 1;
+                        tooltip.style.left = `${e.clientX - rect.left + 15}px`;
+                        tooltip.style.top = `${e.clientY - rect.top - 10}px`;
+                        document.getElementById('tt-title').innerText = node.name;
+                        const color = node.status === 'critical' ? 'var(--danger)' : (node.status === 'warning' ? 'var(--warning)' : 'var(--success)');
+                        document.getElementById('tt-status').innerHTML = `Capacity: <span style="color:${color}">${node.val}%</span>`;
+                        return;
+                    }
+                }
+                
+                this.canvas.style.cursor = 'default';
+                tooltip.style.opacity = 0;
+            }
+
+            handleClick() {
+                if (this.hoveredNode) {
+                    App.showToast(`Accessing secure data for ${this.hoveredNode.name}...`);
+                }
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+
+                // 1. Draw Radar Grid
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                this.ctx.lineWidth = 1;
+                
+                // Concentric circles
+                const centerX = this.width / 2;
+                const centerY = this.height / 2;
+                const maxR = Math.min(centerX, centerY) * 0.9;
+                
+                for (let i = 1; i <= 4; i++) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(centerX, centerY, maxR * (i/4), 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+
+                // Crosshairs
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX, 0); this.ctx.lineTo(centerX, this.height);
+                this.ctx.moveTo(0, centerY); this.ctx.lineTo(this.width, centerY);
+                this.ctx.stroke();
+
+                // 2. Draw Radar Sweep
+                this.ctx.save();
+                this.ctx.translate(centerX, centerY);
+                this.ctx.rotate(this.angle);
+                
+                const grad = this.ctx.createConicGradient(0, 0, 0);
+                grad.addColorStop(0, 'rgba(59, 130, 246, 0)');
+                grad.addColorStop(0.1, 'rgba(59, 130, 246, 0.1)');
+                grad.addColorStop(0.2, 'rgba(59, 130, 246, 0.4)');
+                
+                this.ctx.fillStyle = grad;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0,0);
+                this.ctx.arc(0, 0, maxR, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+
+                this.angle += 0.01;
+
+                // 3. Draw Connections
+                this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+                this.ctx.beginPath();
+                this.nodes.forEach((node, i) => {
+                    if (i === 2) return; // Skip center for connection loop
+                    const cx = this.nodes[2].x * this.width;
+                    const cy = this.nodes[2].y * this.height;
+                    this.ctx.moveTo(cx, cy);
+                    this.ctx.lineTo(node.x * this.width, node.y * this.height);
+                });
+                this.ctx.stroke();
+
+                // 4. Draw Nodes
+                this.nodes.forEach(node => {
+                    const x = node.x * this.width;
+                    const y = node.y * this.height;
+                    
+                    let color = '#10b981';
+                    if (node.status === 'critical') color = '#ef4444';
+                    if (node.status === 'warning') color = '#f59e0b';
+
+                    // Pulse effect
+                    const pulse = Math.sin(Date.now() / 300) * 3;
+                    
+                    this.ctx.fillStyle = color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    // Glow ring
+                    this.ctx.strokeStyle = color;
+                    this.ctx.globalAlpha = 0.5;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, 10 + pulse, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                    this.ctx.globalAlpha = 1.0;
+                    
+                    // Label
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.font = '10px Inter';
+                    this.ctx.fillText(node.name, x + 15, y + 4);
+                });
+            }
+
+            animate() {
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        /**
+         * Chart Renderer
+         * Handles the Line Chart visualization
+         */
+        class ChartRenderer {
+            constructor(canvasId, store) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.store = store;
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+                this.draw(this.store.state.chartData);
+            }
+
+            draw(data) {
+                const { width, height } = this.canvas;
+                const ctx = this.ctx;
+                
+                ctx.clearRect(0, 0, width, height);
+                
+                const padding = 20;
+                const chartW = width - padding * 2;
+                const chartH = height - padding * 2;
+                
+                const maxVal = 100;
+                const stepX = chartW / (data.length - 1);
+                
+                // Create Gradient
+                const grad = ctx.createLinearGradient(0, 0, 0, height);
+                grad.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                grad.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+                // Draw Area
+                ctx.beginPath();
+                ctx.moveTo(padding, height - padding);
+                
+                data.forEach((val, i) => {
+                    const x = padding + i * stepX;
+                    const y = padding + chartH - (val / maxVal) * chartH;
+                    ctx.lineTo(x, y);
+                });
+                
+                ctx.lineTo(padding + chartW, height - padding);
+                ctx.closePath();
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Draw Line
+                ctx.beginPath();
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 3;
+                ctx.lineJoin = 'round';
+                
+                data.forEach((val, i) => {
+                    const x = padding + i * stepX;
+                    const y = padding + chartH - (val / maxVal) * chartH;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
+        }
+
+        /**
+         * Main UI Controller
+         */
+        const App = {
+            init: () => {
+                // Initialize Renderers
+                const mapRenderer = new MapRenderer('mapCanvas', store);
+                const chartRenderer = new ChartRenderer('chartCanvas', store);
+
+                // Subscribe to store updates
+                store.subscribe((state) => {
+                    // Update Metrics
+                    document.getElementById('metric-oxygen').innerText = state.oxygen.toFixed(1) + '%';
+                    document.getElementById('bar-oxygen').style.width = state.oxygen + '%';
+                    
+                    document.getElementById('metric-icu').innerText = state.icu.toFixed(1) + '%';
+                    document.getElementById('bar-icu').style.width = state.icu + '%';
+                    
+                    document.getElementById('metric-pharma').innerText = state.pharma.toFixed(1) + '%';
+                    document.getElementById('bar-pharma').style.width = state.pharma + '%';
+
+                    // Update Logs
+                    const logContainer = document.getElementById('log-feed');
+                    logContainer.innerHTML = state.logs.map(log => `
+                        <div class="log-entry">
+                            <span class="log-time">[${log.time}]</span>
+                            <span class="log-source">${log.source}:</span>
+                            <span>${log.message}</span>
+                        </div>
+                    `).join('');
+
+                    // Update Chart
+                    chartRenderer.draw(state.chartData);
+                });
+
+                // Mobile Menu
+                const menuBtn = document.getElementById('menu-toggle');
+                if(window.innerWidth <= 768) menuBtn.style.display = 'block';
+                menuBtn.addEventListener('click', () => {
+                    document.querySelector('.sidebar').classList.toggle('active');
+                });
+            },
+
+            enterDashboard: () => {
+                const loader = document.getElementById('loader');
+                const landing = document.getElementById('landing-page');
+                
+                loader.classList.add('active');
+                
+                setTimeout(() => {
+                    landing.style.opacity = '0';
+                    loader.classList.remove('active');
+                    setTimeout(() => {
+                        landing.style.display = 'none';
+                        App.init(); // Initialize dashboard components
+                    }, 800);
+                }, 1500);
+            },
+
+            toggleChat: () => {
+                document.getElementById('ai-panel').classList.toggle('open');
+            },
+
+            handleChatKey: (e) => {
+                if (e.key === 'Enter') App.sendChat();
+            },
+
+            sendChat: () => {
+                const input = document.getElementById('chat-input');
+                const text = input.value.trim();
+                if (!text) return;
+
+                const feed = document.getElementById('chat-feed');
+                
+                // Add User Message
+                feed.innerHTML += `<div class="msg user">${text}</div>`;
+                input.value = '';
+                feed.scrollTop = feed.scrollHeight;
+
+                // Simulate AI Typing
+                setTimeout(() => {
+                    let reply = "I am processing your request via the secure agent network.";
+                    if (text.toLowerCase().includes('oxygen')) reply = "I have found 3 backup suppliers. 'AirSupply Corp' has the best logistics score. Should I draft the PO?";
+                    if (text.toLowerCase().includes('yes') || text.toLowerCase().includes('do it')) reply = "Purchase Order generated automatically. Contract signed via Digital ID.";
+                    
+                    feed.innerHTML += `<div class="msg ai">${reply}</div>`;
+                    feed.scrollTop = feed.scrollHeight;
+                }, 1000);
+            },
+
+            showToast: (msg) => {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.innerHTML = `<i class="fa-solid fa-circle-info text-primary"></i> <span>${msg}</span>`;
+                container.appendChild(toast);
+                
+                // Trigger animation
+                requestAnimationFrame(() => toast.classList.add('show'));
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+        };
+
+        // Global click to close sidebar on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const toggle = document.getElementById('menu-toggle');
+                if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
+                    sidebar.classList.remove('active');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
